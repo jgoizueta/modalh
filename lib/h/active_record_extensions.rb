@@ -16,7 +16,7 @@ module H
       class_eval do
 
         validates_each attr do |record, attr_name, value|
-          record.errors.add attr_name.to_s if record.send(:"\#{attr_name}_h_invalid?")
+          record.errors.add attr_name.to_s if record.send(:"#{attr_name}_h_invalid?")
         end
 
         # attr=(v)
