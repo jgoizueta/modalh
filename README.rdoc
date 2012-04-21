@@ -1,16 +1,92 @@
 = modalh
 
-Description goes here.
+This is a plugin for localization & delocalization (parsing localized text representation) of data values (numbers, dates, etc.).
+It also handles values with units (referred to as 'measures')
 
-== Contributing to modalh
- 
-* Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
-* Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it.
-* Fork the project.
-* Start a feature/bugfix branch.
-* Commit and push until you are happy with your contribution.
-* Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
-* Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
+It lives inside the H (for human) namespace; the localization operation is referred to as H.to or to_h
+(conversion of a value to a localized text representation for human consumption)
+and delocalization (parsing) is referred to as H.from or from_h (conversion of a localized text for humans to a data value).
+
+It can be integrated with ModalFields[https://github.com/jgoizueta/modalfields] to simplify the declaration of attributes
+to be localized/delocalized.
+
+== Localization/delocalization of general data values
+
+In views and controllers the method @to_h@ can be used to localize a value for human consumption
+and @from_h@ to parse human input into a value: (note that @I18n.locale@ will be use as a default)
+
+  puts to_h(3.4, :locale=>:es, :precision=>3)      # => 3,400
+  puts from_h('3,400', :locale=>:es, :type=>Float) # => 3.4
+
+There are also more type-specific methods @number_to_h@, @number_from_h@, @date_to_h@, @date_from_h@, etc.
+
+In models, or any other place outside views or controller the forms @H.to@ (or @H.to_h@) and @H.from@ (or @H.from_h@)
+are available with the same functionality:
+
+  puts H.to(3.4, :locale=>:es, :precision=>3)      # => 3,400
+  puts H.from('3,400', :locale=>:es, :type=>Float) # => 3.4
+
+Again, type-specific versions exist @H.number_to@, @H.number_from@, etc.
+
+Data values can be formatted with units with the @magnitude@ variants:
+
+  puts  H.magnitude_to(3.233, :units=>'km/h', :precision=>2) # => "3,23 km/h"
+
+User input with optional units can be parsed and converted to de desired units:
+
+  puts H.magnitude_from('20 m/s', :units=>'km/h') # => 72.0
+
+Inconsistent units will raise an error.
+
+== Localization/delocalization of Model attributes
+
+An attribute @attr@ can be declared to be localized in its model class like so:
+
+  number_h :attr, :precision=>3
+
+This can also be handled automatically with ModalFields (see the h/fields.rb documentation).
+
+When an attributes is declared to be localized, a localized representation of it is available as @attr_h@:
+
+  puts record.attr_h
+
+For example, in a form we could have:
+
+  f.text_field :attr_h
+
+To assign localized text to an attribute @attr_h=@ can be used:
+
+  record.attr_h = params[:model][:attr_h]
+
+So, forms will work as usual by simply using the @_h@ variant of the fields that need localization.
+
+When using ModalFields, the desired precision for a localized numeric attribute, if different from that of the database field,
+can be specified with the @:h_precision@ parameter:
+
+  attr :decimal, :precision=>3, :h_precision=>2
+
+An attribute can be declared to have units in its model using this syntax:
+
+  units_h :attr, :precision=>3, :units=>'mm'
+
+With ModalFields and using the provided automatic units detection, an attribute simply has to be named with the units name
+as a suffix (separated by an underscore):
+
+  attr_mm :decimal, :precision=>3
+
+In this case, to prevent an attribute with such suffix from having units, a parameter @:units=>nil@ can be passed.
+
+The localized form of an attribute with units, @attr_h@ will include its units as when using @H.magnitude_to@.
+
+A localized attribute with units, when assigned through its @attr_h=@ form will accept units in the localized text
+and will perform the proper conversion. Inconsistent units will produce a nil value for the attribute and will
+fail to validate.
+
+== TODO
+
+* Tests
+* Document translations used
+* New attribute types: bank account number, credit card number, NIF, money, ...
 
 == Copyright
 
