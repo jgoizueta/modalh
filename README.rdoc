@@ -1,4 +1,4 @@
-= modalh
+= ModalH
 
 This is a plugin for localization & delocalization (parsing localized text representation) of data values (numbers, dates, etc.).
 It also handles values with units (referred to as 'measures')
@@ -9,6 +9,8 @@ and delocalization (parsing) is referred to as H.from or from_h (conversion of a
 
 It can be integrated with ModalFields[https://github.com/jgoizueta/modalfields] to simplify the declaration of attributes
 to be localized/delocalized.
+
+Code for date parsing has been _borrowed_ from delocalize[https://github.com/clemens/delocalize].
 
 == Localization/delocalization of general data values
 
