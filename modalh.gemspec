@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "lib/h/helpers.rb",
     "lib/h/units.rb",
     "lib/modalh.rb",
+    "modalh.gemspec",
     "test/helper.rb",
     "test/test_modalh.rb"
   ]
