@@ -43,9 +43,9 @@ module H
       return options[:blank] || '' if value.nil?
       unless value.kind_of?(String)
         value = round(value,precision)
-        if value.try.nan?
+        if value.respond_to?(:nan?) && value.nan?
           return options[:nan] || "--"
-        elsif value.try.infinite?
+        elsif value.respond_to?(:infinite?) && value.infinite?
           inf = options[:inf] || '∞'
           return value<0 ? "-#{inf}" : inf
          else
@@ -175,7 +175,7 @@ module H
       # include ActionView::Helpers::NumberHelper
 
       def round(v, ndec)
-        return v if v.try.nan? || v.try.infinite?
+        return v if (v.respond_to?(:nan?) && v.nan?) || (v.respond_to?(:infinite?) && v.infinite?)
         if ndec
           case v
             when BigDecimal
