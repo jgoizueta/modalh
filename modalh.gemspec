@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "modalh"
-  s.version = "1.0.3"
+  s.version = "1.0.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Javier Goizueta"]
-  s.date = "2012-04-21"
+  s.date = "2012-04-30"
   s.description = "Rails plugin for localization & delocalization of data values"
   s.email = "jgoizueta@gmail.com"
   s.extra_rdoc_files = [
@@ -37,7 +37,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/jgoizueta/modalh"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.21"
+  s.rubygems_version = "1.8.23"
   s.summary = "Rails plugin for localization & delocalization"
 
   if s.respond_to? :specification_version then
