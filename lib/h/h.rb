@@ -200,12 +200,7 @@ module H
 
       # pos0 first digit, pos1 one past last integral digit
       def digit_grouping(txt,n,sep,pos0,pos1)
-        if sep
-          while pos1>pos0
-            pos1 -= n
-            txt.insert pos1, sep if pos1>pos0
-          end
-        end
+        txt[pos0...pos1] = txt[pos0...pos1].gsub(/(\d)(?=(#{'\\d'*n})+(?!\d))/, "\\1#{sep}") if sep
         txt
       end
 
