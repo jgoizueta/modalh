@@ -10,6 +10,10 @@ end
 require 'test/unit'
 require 'shoulda'
 
+require 'i18n'
+require 'active_support'
+require 'bigdecimal'
+
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'modalh'

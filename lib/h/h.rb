@@ -37,7 +37,7 @@ module H
     end
 
     def number_to(value, options={})
-      options = I18n.translate(:'number.format', :locale => options[:locale]).except(:precision).merge(options)
+      options = number_format_options(options).except(:precision).merge(options)
       precision = options[:precision]
 
       return options[:blank] || '' if value.nil?
@@ -51,7 +51,7 @@ module H
          else
           value = value.to_i if precision==0
           value = value.to_s
-          value = value[0...-2] if value.ends_with?('.0')
+          value = value[0...-2] if value.end_with?('.0')
          end
       end
       if options[:delimiter]
@@ -73,7 +73,7 @@ module H
     end
 
     def number_from(txt, options={})
-      options = I18n.translate(:'number.format', :locale => options[:locale]).except(:precision).merge(options)
+      options = number_format_options(options).except(:precision).merge(options)
       type = check_type(options[:type] || (options[:precision]==0 ? Integer : Float))
 
       return nil if txt.to_s.strip.empty? || txt==options[:blank]
@@ -94,7 +94,7 @@ module H
     end
 
     def integer_to(value, options={})
-      options = I18n.translate(:'number.format', :locale => options[:locale]).merge(options)
+      options = number_format_options(options).merge(options)
       if value.nil?
         options[:blank] || ''
       else
@@ -120,7 +120,7 @@ module H
     end
 
     def date_from(txt, options={})
-      options = I18n.translate(:'number.format', :locale => options[:locale]).merge(options)
+      options = number_format_options(options).merge(options)
       type = check_type(options[:type] || Date)
 
       return nil if txt.to_s.strip.empty? || txt==options[:blank]
@@ -155,12 +155,12 @@ module H
     end
 
     def logical_to(value, options={})
-      options = I18n.translate(:'logical.format', :locale => options[:locale]).merge(options)
+      options = logical_format_options(options).merge(options)
       value.nil? ? options[:blank] : (value ? options[:true] : options[:false])
     end
 
     def logical_from(txt, options={})
-      options = I18n.translate(:'logical.format', :locale => options[:locale]).merge(options)
+      options = logical_format_options(options).merge(options)
       txt = normalize_txt(txt)
       trues = options[:trues]
       trues ||= [normalize_txt(options[:true])]
@@ -173,6 +173,16 @@ module H
 
     private
       # include ActionView::Helpers::NumberHelper
+
+      def number_format_options(options)
+        opt = I18n.translate(:'number.format', :locale => options[:locale])
+        opt.kind_of?(Hash) ? opt : {:separator=>'.'}
+      end
+
+      def logical_format_options(options)
+        opt = I18n.translate(:'logical.format', :locale => options[:locale])
+        opt.kind_of?(Hash) ? opt : {:separator=>'.'}
+      end
 
       def round(v, ndec)
         return v if (v.respond_to?(:nan?) && v.nan?) || (v.respond_to?(:infinite?) && v.infinite?)
