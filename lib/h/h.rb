@@ -241,18 +241,18 @@ module H
     end
 
     def longitude_to(value, options={})
-      dms value, options.merge(:longitude=>true)
+      dms_to value, options.merge(:longitude=>true)
     end
 
     def latitude_to(value, options={})
-      dms value, options.merge(:latitude=>true)
+      dms_to value, options.merge(:latitude=>true)
     end
 
     def dms_to(value, options={})
-      longitude = options.delete(:longitude)
-      latitude = options.delete(:latitude)
-      latitude = true if longitude==false && latitude.nil?
-      longitude = true if latitude==false && longitude.nil?
+      longitude = options[:longitude]
+      latitude = options[:latitude]
+      latitude = true if longitude==false && !options.has_key?(:latitude)
+      longitude = true if latitude==false && !options.has_key?(:longitude)
       options = dms_format_options(options).except(:precision).merge(options)
       precision = options[:precision]
 
