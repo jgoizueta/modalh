@@ -48,11 +48,12 @@ module H
         elsif value.respond_to?(:infinite?) && value.infinite?
           inf = options[:inf] || '∞'
           return value<0 ? "-#{inf}" : inf
-         else
+        else
           value = value.to_i if precision==0
           value = value.to_s
           value = value[0...-2] if value.end_with?('.0')
-         end
+        end
+      # else: TODO recognize nan/infinite values
       end
       if options[:delimiter]
         txt = value.to_s.tr(' ','').tr('.,',options[:separator]+options[:delimiter]).tr(options[:delimiter],'')
@@ -78,11 +79,7 @@ module H
 
       return nil if txt.to_s.strip.empty? || txt==options[:blank]
 
-      if options[:delimiter]
-        txt = txt.tr(' ','').tr(options[:delimiter]+options[:separator], ',.').tr(',','')
-      else
-        txt = txt.tr(' ','').tr(options[:separator], '.')
-      end
+      txt = numbers_to_ruby(txt.tr(' ',''), options)
       raise ArgumentError, "Invalid number #{txt}" unless /\A[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?\Z/.match(txt)
       if type==Float
         txt.to_f
@@ -169,10 +166,159 @@ module H
       trues.include?(txt) ? true : falses.include?(txt) ? false : nil
     end
 
+    def dms_from(txt, options={})
+      original_txt = txt
+      options = dms_format_options(options).merge(options)
+
+      return nil if txt.to_s.strip.empty? || txt==options[:blank]
+
+      neg_signs = [options[:south], options[:west]] << '-'
+      pos_signs = [options[:north], options[:east]] << '+'
+      neg_signs, pos_signs = [neg_signs, pos_signs].map {|signs|
+        (signs.map{|s| s.mb_chars.upcase.to_s} + signs.map{|s| s.mb_chars.downcase.to_s}).uniq
+      }
+      signs = neg_signs + pos_signs
+      seps = Array(options[:deg_seps]) + Array(options[:min_seps]) + Array(options[:sec_seps])
+
+      neg = false
+
+      txt = txt.to_s.strip
+      neg_signs.each do |sign|
+        if txt.start_with?(sign)
+          txt = txt[sign.size..-1]
+          neg = true
+          break
+        end
+        if txt.end_with?(sign)
+          txt = txt[0...-sign.size]
+          neg = true
+          break
+        end
+      end
+      unless neg
+        pos_signs.each do |sign|
+          if txt.start_with?(sign)
+            txt = txt[sign.size..-1]
+            break
+          end
+          if txt.end_with?(sign)
+            txt = txt[0...-sign.size]
+            break
+          end
+        end
+      end
+
+      num_options = number_format_options(options).except(:precision).merge(options)
+      txt = numbers_to_ruby(txt.strip, num_options)
+
+      default_units = 0
+
+      v = 0
+      seps = (seps.map{|s| Regexp.escape(s)}<<"\\s+")*"|"
+      scanned_txt = ""
+      txt.scan(/((\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)(#{seps})?\s*)/) do |match|
+        scanned_txt << match[0]
+        number = match[1]
+        sep = match[2]
+        if Array(options[:deg_seps]).include?(sep)
+          units = :deg
+        elsif Array(options[:min_seps]).include?(sep)
+          units = :min
+        elsif Array(options[:sec_seps]).include?(sep)
+          units = :sec
+        else
+          units = DMS_UNITS[default_units]
+        end
+        raise ArgumentError, "Invalid degrees-minutes-seconds value #{original_txt}" unless units
+        default_units = DMS_UNITS.index(units) + 1
+        x = number.to_f
+        x *= DMS_FACTORS[units]
+        v += x
+      end
+      raise ArgumentError, "Invalid degrees-minutes-seconds value #{original_txt} [#{txt}] [#{scanned_txt}]" unless txt==scanned_txt
+      v = -v if neg
+      v
+    end
+
+    def longitude_to(value, options={})
+      dms value, options.merge(:longitude=>true)
+    end
+
+    def latitude_to(value, options={})
+      dms value, options.merge(:latitude=>true)
+    end
+
+    def dms_to(value, options={})
+      longitude = options.delete(:longitude)
+      latitude = options.delete(:latitude)
+      latitude = true if longitude==false && latitude.nil?
+      longitude = true if latitude==false && longitude.nil?
+      options = dms_format_options(options).except(:precision).merge(options)
+      precision = options[:precision]
+
+      return options[:blank] || '' if value.nil?
+
+      if value.kind_of?(String)
+        # TODO: recognize nan/infinite values
+        value = value.to_f
+      else
+        if value.respond_to?(:nan?) && value.nan?
+          return options[:nan] || "--"
+        elsif value.respond_to?(:infinite?) && value.infinite?
+          inf = options[:inf] || '∞'
+          return value<0 ? "-#{inf}" : inf
+        end
+      end
+      if value.to_s.start_with?('-') # value<0 # we use to_s to handle negative zero
+        value = -value
+        neg = true
+      end
+
+      deg = value.floor
+      value -= deg
+      value *= 60
+      min = value.floor
+      value -= min
+      value *= 60
+      sec = value.round(SEC_PRECISION)
+
+      txt = []
+
+      txt << integer_to(deg, options.except(:precision)) + Array(options[:deg_seps]).first
+      if min>0 || sec>0
+        txt << integer_to(min, options.except(:precision)) + Array(options[:min_seps]).first
+        if sec>0
+          txt << number_to(sec, options) + Array(options[:sec_seps]).first
+        end
+      end
+
+      txt = txt*" "
+
+      if longitude || latitude
+        if longitude
+          letter = neg ? options[:west] : options[:east]
+        else
+          letter = neg ? options[:south] : options[:north]
+        end
+        txt = options[:prefix] ? "#{letter} #{txt}" : "#{txt} #{letter}"
+      else
+        txt = "-#{txt}" if neg
+      end
+
+      txt
+    end
+
     # TODO: currency, money, bank accounts, credit card numbers, ...
 
     private
       # include ActionView::Helpers::NumberHelper
+
+      DMS_UNITS = [:deg, :min, :sec]
+      DMS_FACTORS = {
+        :deg=>1, :min=>1.0/60.0, :sec=>1.0/3600.0
+      }
+      SEC_EPSILON = 1E-10
+      SEC_PRECISION = 10
 
       def number_format_options(options)
         opt = I18n.translate(:'number.format', :locale => options[:locale])
@@ -182,6 +328,20 @@ module H
       def logical_format_options(options)
         opt = I18n.translate(:'logical.format', :locale => options[:locale])
         opt.kind_of?(Hash) ? opt : {:separator=>'.'}
+      end
+
+      def dms_format_options(options)
+        opt = I18n.translate(:'number.dms.format', :locale => options[:locale])
+        opt.kind_of?(Hash) ? opt : {
+          :deg_seps => ['°', 'º'],
+          :min_seps => "'",
+          :sec_seps => '"',
+          :north => 'N',
+          :south => 'S',
+          :east => 'E',
+          :west => 'W',
+          :prefix => false
+        }
       end
 
       def round(v, ndec)
@@ -261,6 +421,15 @@ module H
         type = type.to_s.camelcase.safe_constantize if type.kind_of?(Symbol)
         raise ArgumentError, "Invalid type #{orig_type}" unless type && type.class==Class
         type
+      end
+
+      def numbers_to_ruby(txt, options)
+        if options[:delimiter]
+          txt = txt.tr(options[:delimiter]+options[:separator], ',.').tr(',','')
+        else
+          txt = txt.tr(options[:separator], '.')
+        end
+        txt
       end
 
 

@@ -12,6 +12,7 @@ require 'shoulda'
 
 require 'i18n'
 require 'active_support'
+require 'active_support/core_ext/string'
 require 'bigdecimal'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))

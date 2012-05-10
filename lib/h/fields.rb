@@ -64,6 +64,7 @@ module H
         end
         options[:precision] ||= {'m'=>1, 'mm'=>0, 'cm'=>0, 'km'=>3}[options[:units]] # TODO AppSettings
         declaration.remove_attributes! :h_precision, :units
+        # declaration.replace!(:type=>:float)
         model.units_h declaration.name, options[:units], options
       end
 
@@ -83,6 +84,33 @@ module H
         model.logical_h declaration.name
       end
 
+      def declare_dms_field(model, declaration)
+        options = declaration.attributes.slice(:precision, :longitude, :latitude)
+        if precision = declaration.attributes[:h_precision]
+          options[:precision] = precision
+        end
+        declaration.remove_attributes! :h_precision, :longitude, :latitude
+        model.dms_h declaration.name, options
+      end
+
+      def declare_longitude_field(model, declaration)
+        options = declaration.attributes.slice(:precision).merge(:longitude=>true)
+        if precision = declaration.attributes[:h_precision]
+          options[:precision] = precision
+        end
+        declaration.remove_attributes! :h_precision
+        model.dms_h declaration.name, options
+      end
+
+      def declare_latitude_field(model, declaration)
+        options = declaration.attributes.slice(:precision).merge(:latitude=>true)
+        if precision = declaration.attributes[:h_precision]
+          options[:precision] = precision
+        end
+        declaration.remove_attributes! :h_precision
+        model.dms_h declaration.name, options
+      end
+
       # This is handy to be used in all_fields to make any field with a :units parameter or a valid units suffix a units_h field
       # (and make other numberic fields _h too); If a field with a suffix corresponding to valid units should not be a measure,
       # a :units=>nil parameter should be added.
@@ -92,7 +120,9 @@ module H
           unless declaration.attributes.has_key?(:units)
             units = declaration.name.to_s.split('_').last
           end
-          if units && H::Units.valid?(units)
+          if units && units.to_s=='dms'
+            declare_dms_field model, declaration
+          elsif units && H::Units.valid?(units)
             declare_units_field model, declaration, units
           else
             raise ArgumentError, "Invalid units #{declaration.attributes[:units]} in declaration of #{model.name}" if declaration.attributes[:units]

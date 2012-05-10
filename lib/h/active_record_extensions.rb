@@ -69,10 +69,22 @@ module H
 
     end
 
-    [:number, :integer, :date, :logical, :time, :datetime].each do |prefix|
+    [:number, :integer, :date, :logical, :time, :datetime, :dms].each do |prefix|
       define_method :"#{prefix}_h" do |attr, *options|
         _h prefix, attr, *options
       end
+    end
+
+    def longitude_h(attr, *args)
+      options = args.extract_options!
+      options[:longitude] = true
+      _h prefix, attr, *(args<<options)
+    end
+
+    def latitude_h(attr, *args)
+      options = args.extract_options!
+      options[:latitude] = true
+      _h prefix, attr, *(args<<options)
     end
 
     # TODO: support special suffix form of units, e.g. _m2 for m^2, for attribute names
