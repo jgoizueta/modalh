@@ -9,18 +9,18 @@ module H
   module ActiveRecordExtensions
 
     # Generic H field declarator
-    def _h(prefix, attr, *options)
+    def _h(prefix, attr, *args)
 
-      hash_options = options.extract_options!
-      actual_attr = hash_options[:attribute] || attr
-      options << hash_options.except(:attribute)
+      options = args.extract_options!
+      actual_attr = options.delete(:attribute) || attr
+      args << options unless options.empty?
 
-      instance_variable_set :"@#{attr}_h_options", options
+      instance_variable_set :"@#{attr}_h_options", args
 
       class_eval do
 
-        validates_each attr do |record, attr_name, value|
-          if attr_name.to_s==actual_attr.to_s && record.send(:"#{attr_name}_h_invalid?")
+        validates_each actual_attr do |record, attr_name, value|
+          if attr_name.to_s==actual_attr.to_s && record.send(:"#{attr}_h_invalid?")
             record.errors.add attr_name.to_s
           end
         end
@@ -34,9 +34,27 @@ module H
           end
         end
 
+        if method_defined?(:"#{actual_attr}=")
+          define_method :"#{actual_attr}_with_#{prefix}_h=" do |v|
+            send :"#{actual_attr}_without_#{prefix}_h=", v
+            instance_variable_set "@#{attr}_h", nil
+          end
+          alias_method_chain :"#{actual_attr}=", :"#{prefix}_h"
+        else
+          define_method :"#{actual_attr}=" do |v|
+            write_attribute actual_attr, v
+            instance_variable_set "@#{attr}_h", nil
+          end
+        end
+
         # attr_h
         define_method :"#{attr}_h" do
-          H.send(:"#{prefix}_to", send(attr), *self.class.instance_variable_get(:"@#{attr}_h_options"))
+          unless  (instance_variable_defined? "@#{attr}_h") && (h=instance_variable_get("@#{attr}_h")) && instance_variable_get("@#{attr}_h_locale")==I18n.locale
+            h = H.send(:"#{prefix}_to", send(attr), *self.class.instance_variable_get(:"@#{attr}_h_options"))
+            instance_variable_set "@#{attr}_h", h
+            instance_variable_set "@#{attr}_h_locale", I18n.locale
+          end
+          h
         end
 
         # attr_h=(txt)
@@ -51,6 +69,8 @@ module H
             instance_variable_set "@#{attr}_h_invalid", true if v.nil?
           end
           send :"#{attr}=", v
+          instance_variable_set "@#{attr}_h", txt
+          instance_variable_set "@#{attr}_h_locale", I18n.locale
         end
 
         # attr_h? (returns true if it is valid and not blank)
