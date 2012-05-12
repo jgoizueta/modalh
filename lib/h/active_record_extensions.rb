@@ -11,34 +11,37 @@ module H
     # Generic H field declarator
     def _h(prefix, attr, *options)
 
+      hash_options = options.extract_options!
+      actual_attr = hash_options[:attribute] || attr
+      options << hash_options.except(:attribute)
+
       instance_variable_set :"@#{attr}_h_options", options
 
       class_eval do
 
         validates_each attr do |record, attr_name, value|
-          record.errors.add attr_name.to_s if record.send(:"#{attr_name}_h_invalid?")
+          if attr_name.to_s==actual_attr.to_s && record.send(:"#{attr_name}_h_invalid?")
+            record.errors.add attr_name.to_s
+          end
         end
 
-        # attr=(v)
-        define_method :"#{attr}=" do |v|
-          write_attribute attr, v
-          instance_variable_set "@#{attr}_h", nil
+        if attr != actual_attr
+          define_method :"#{attr}" do
+            self.send :"#{actual_attr}"
+          end
+          define_method :"#{attr}=" do |v|
+            self.send :"#{actual_attr}=", v
+          end
         end
 
         # attr_h
         define_method :"#{attr}_h" do
-          # don't cache it, because the locale may change
-          # unless instance_variable_defined? "@#{attr}_h"
-            instance_variable_set "@#{attr}_h", H.send(:"#{prefix}_to", send(attr), *self.class.instance_variable_get(:"@#{attr}_h_options"))
-          # end
-          instance_variable_get "@#{attr}_h"
+          H.send(:"#{prefix}_to", send(attr), *self.class.instance_variable_get(:"@#{attr}_h_options"))
         end
 
         # attr_h=(txt)
         define_method :"#{attr}_h=" do |txt|
-          instance_variable_set "@#{attr}_h", txt
           instance_variable_set "@#{attr}_h_invalid", false
-          write_attribute attr, nil
           unless txt.blank?
             begin
                v = H.send(:"#{prefix}_from", txt, *self.class.instance_variable_get(:"@#{attr}_h_options"))
