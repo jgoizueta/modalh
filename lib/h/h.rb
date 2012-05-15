@@ -113,6 +113,7 @@ module H
     end
 
     def date_to(value, options={})
+      return options[:blank] || '' if value.nil?
       I18n.l(value, options)
     end
 
