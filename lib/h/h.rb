@@ -101,6 +101,7 @@ module H
     end
 
     def integer_from(txt)
+      options = number_format_options(options).merge(options)
       if txt.to_s.strip.empty? || txt==options[:blank]
         nil
       else
