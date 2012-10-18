@@ -19,9 +19,11 @@ module H
 
       class_eval do
 
-        validates_each actual_attr do |record, attr_name, value|
-          if attr_name.to_s==actual_attr.to_s && record.send(:"#{attr}_h_invalid?")
-            record.errors.add :"#{attr}_h"
+        if columns.detect{|c| c.name == actual_attr.to_s}
+          validates_each actual_attr do |record, attr_name, value|
+            if attr_name.to_s==actual_attr.to_s && record.send(:"#{attr}_h_invalid?")
+              record.errors.add :"#{attr}_h"
+            end
           end
         end
 
