@@ -13,7 +13,7 @@ module H
       type = check_type(type)
       if type.ancestors.include?(Numeric)
         number_from(txt, options)
-      elsif type.respond_to?(:strftime)
+      elsif !(type.instance_methods & [:strftime, 'strftime']).empty?
         date_from(txt, options)
       elsif type==:logical || type==:boolean
         logical_from(txt, options)
